@@ -124,7 +124,7 @@
                 div.textContent = s;
                 resultDiv.appendChild(div);
             });
-            saveHistory(output.join(" + "));
+            saveHistory(input + "=" + output.join(" + "));
         }
 
         function normalizeInput(val) {
@@ -156,9 +156,9 @@
             setTimeout(() => t.style.display = "none", 1500);
         }
 
-        function saveHistory(text) {
+        function saveHistory(entry) {
             let h = JSON.parse(localStorage.getItem("egyptHistory") || "[]");
-            h.unshift(text);
+            h.unshift(entry);
             h = h.slice(0, 5);
             localStorage.setItem("egyptHistory", JSON.stringify(h));
             renderHistory();
