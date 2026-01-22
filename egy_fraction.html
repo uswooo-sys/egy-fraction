@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>埃及分数转换（完整版）</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --bg: #eef2f5;
+            --card: #ffffff;
+            --text: #000000;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #121212;
+                --card: #1e1e1e;
+                --text: #f5f5f5;
+            }
+        }
+
+        body {
+            font-family: "Microsoft YaHei", serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 20px;
+        }
+
+        .box {
+            max-width: 600px;
+            margin: auto;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.15);
+        }
+
+        input, button {
+            font-size: 16px;
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        #result {
+            margin-top: 20px;
+            line-height: 1.8;
+        }
+
+        .step {
+            background: #f7f9fb;
+            padding: 8px;
+            margin: 6px 0;
+            border-left: 4px solid #4a90e2;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>埃及分数转换</h2>
+        <p>输入分数（如 7/3、4/13）：</p>
+        <input type="text" id="fraction" placeholder="a/b">
+        <button onclick="convert()">转换</button>
+
+        <div id="result"></div>
+        <div id="toast" style="display:none;margin-top:10px;color:#2e7d32;">已复制到剪贴板</div>
+        <div id="history" style="margin-top:15px;font-size:14px;"></div>
+    </div>
+
+    <script>
+        const inputEl = document.getElementById("fraction");
+        const resultDiv = document.getElementById("result");
+
+        inputEl.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") convert();
+        });
+
+        function convert() {
+            const input = normalizeInput(inputEl.value);
+            resultDiv.innerHTML = "";
+            resultDiv.style.color = "";
+            inputEl.style.border = "";
+
+            if (!input.includes("/")) return showError("请输入形如 a/b 的分数");
+
+            let [a, b] = input.split("/").map(Number);
+            if (isNaN(a) || isNaN(b) || b === 0) return showError("请输入合法分数");
+
+            let output = [];
+            let steps = [];
+
+            if (a >= b) {
+                let integerPart = Math.floor(a / b);
+                output.push(integerPart.toString());
+                a = a % b;
+                if (a === 0) {
+                    resultDiv.innerHTML = "结果：" + output.join(" + ");
+                    return;
+                }
+            }
+
+            while (a !== 0) {
+                let n = Math.ceil(b / a);
+                steps.push(`当前分数：${a}/${b}，取 1/${n}`);
+                output.push("1/" + n);
+                a = a * n - b;
+                b = b * n;
+            }
+
+            resultDiv.innerHTML =
+                "<strong>埃及分数表示：</strong><br>" +
+                output.join(" + ") +
+                "<br><br><strong>计算过程：</strong>";
+
+            steps.forEach(s => {
+                let div = document.createElement("div");
+                div.className = "step";
+                div.textContent = s;
+                resultDiv.appendChild(div);
+            });
+            saveHistory(input + "=" + output.join(" + "));
+        }
+
+        function normalizeInput(val) {
+            let v = val.replace(/\s+/g, "");
+            if (v.includes(":")) v = v.replace(":", "/");
+            if (/^\d+\s+\d+$/.test(val.trim())) {
+                const [a, b] = val.trim().split(/\s+/);
+                v = a + "/" + b;
+            }
+            return v;
+        }
+
+        function showError(msg) {
+            resultDiv.textContent = msg;
+            resultDiv.style.color = "#d9534f";
+            inputEl.style.border = "2px solid #d9534f";
+            if (navigator.vibrate) navigator.vibrate(100);
+        }
+
+        resultDiv.addEventListener("click", function () {
+            if (!this.innerText) return;
+            navigator.clipboard.writeText(this.innerText);
+            showToast();
+        });
+
+        function showToast() {
+            const t = document.getElementById("toast");
+            t.style.display = "block";
+            setTimeout(() => t.style.display = "none", 1500);
+        }
+
+        function saveHistory(entry) {
+            let h = JSON.parse(localStorage.getItem("egyptHistory") || "[]");
+            h.unshift(entry);
+            h = h.slice(0, 5);
+            localStorage.setItem("egyptHistory", JSON.stringify(h));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const h = JSON.parse(localStorage.getItem("egyptHistory") || "[]");
+            const div = document.getElementById("history");
+            if (!h.length) return div.innerHTML = "";
+            div.innerHTML = "<strong>历史记录：</strong><br>" + h.map(i => "<div>" + i + "</div>").join("");
+        }
+
+        renderHistory();
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
